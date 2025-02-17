@@ -2,7 +2,7 @@
 
 This repository contains the code of the paper
 
-> Anonymous Authors. "Robust Partial-Label Learning by Leveraging Class Activation Values".
+> Tobias Fuchs, Florian Kalinke. "Robust Partial-Label Learning by Leveraging Class Activation Values".
 
 This document provides (1) an outline of the repository structure and (2) steps to reproduce the experiments including setting up a virtual environment.
 

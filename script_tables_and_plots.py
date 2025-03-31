@@ -222,17 +222,17 @@ def compute_area(x1, y1, x2, y2) -> float:
     return area
 
 
-def get_acc_std_per_algo_and_mnist_like_dataset(dataset: int) -> pd.DataFrame:
+def get_acc_std_per_algo_and_mnist_like_dataset(dataset: int, rl: bool = False) -> pd.DataFrame:
     """ Get stats per algo and MNIST-like dataset. """
 
     conn = sqlite3.connect("results/all_res.db")
     data_algo_seed_df = pd.read_sql_query((
         "select * from results where "
         f"dataset = {dataset} and "
-        "datasetkind = 1 and "
+        f"datasetkind = {0 if rl else 1} and "
         "(ooddataset = 6 or (dataset = 6 and ooddataset = 9) "
         "or ooddataset = -1) and "
-        "augmenttype = 1 and adveps = 0 and split = 1"
+        f"augmenttype = {0 if rl else 1} and adveps = 0 and split = 1"
     ), conn).groupby(by=[
         "dataset", "algo", "seed",
     ], as_index=False)["correct"].mean()
@@ -359,6 +359,46 @@ def print_acc_table() -> None:
                 f"($\\pm$ {fts(row.iloc[i + 1], desired_width=3)})"
             )
             if i != 13:
+                row_strs.append(" & ")
+            else:
+                row_strs.append(" \\\\")
+        row_str = "".join(row_strs)
+        print(row_str)
+    print("\\bottomrule")
+    print()
+
+
+def print_acc_rl_table() -> None:
+    """ Print accuracy table. """
+
+    birdsong = get_acc_std_per_algo_and_mnist_like_dataset(0, True)
+    lost = get_acc_std_per_algo_and_mnist_like_dataset(1, True)
+    mir_flickr = get_acc_std_per_algo_and_mnist_like_dataset(2, True)
+    msrc_v2 = get_acc_std_per_algo_and_mnist_like_dataset(3, True)
+    soccer = get_acc_std_per_algo_and_mnist_like_dataset(4, True)
+    yahoo_news = get_acc_std_per_algo_and_mnist_like_dataset(5, True)
+
+    merged_df = pd.concat([
+        birdsong.loc[:, ["algo", "mean", "std", "sig_diff"]],
+        lost.loc[:, ["mean", "std", "sig_diff"]],
+        mir_flickr.loc[:, ["mean", "std", "sig_diff"]],
+        msrc_v2.loc[:, ["mean", "std", "sig_diff"]],
+        soccer.loc[:, ["mean", "std", "sig_diff"]],
+        yahoo_news.loc[:, ["mean", "std", "sig_diff"]],
+    ], axis=1)
+
+    print()
+    print("\\midrule")
+    for _, row in merged_df.iterrows():
+        if row.iloc[0] == "proden-dropout":
+            print("\\midrule")
+        row_strs = ["\\mbox{" + f"{algo_displaynames[row.iloc[0]]}" + "} & "]
+        for i in [1, 4, 7, 10, 13, 16]:
+            row_strs.append(
+                "\\mbox{" + f"{fts(row.iloc[i], not row.iloc[i + 2])} "
+                f"($\\pm$ {fts(row.iloc[i + 1], desired_width=3)})" + "}"
+            )
+            if i != 16:
                 row_strs.append(" & ")
             else:
                 row_strs.append(" \\\\")
@@ -772,6 +812,7 @@ def plot_entropy_cdf():
 
 if __name__ == "__main__":
     print_acc_table()
+    print_acc_rl_table()
     print_adv_table()
     print_ood_table()
     plot_entropy_cdf()
